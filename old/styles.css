@@ -1,0 +1,80 @@
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  margin: 20px;
+}
+
+#pdf-container {
+  position: relative;
+  margin: auto;
+  width: 1200px;
+  height: 1600px;
+}
+
+#pdf-canvas {
+  width: 100%;
+  height: auto;
+}
+
+#overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.highlight {
+  position: absolute;
+  /*background-color: rgba(255, 255, 255, 0.5);*/
+  pointer-events: none;
+}
+
+.highlight.current {
+
+  /*background-color: rgba(255, 255, 0, 0.5);*/
+
+}
+
+/* курсор должен мигать */
+@keyframes blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+#cursor {
+  position: absolute;
+  border-left: 5px solid #000;
+  animation: blink 1s linear infinite;
+}
+
+#navigation {
+  margin-top: 10px;
+}
+
+button {
+  padding: 5px 10px;
+  margin: 0 5px;
+}
+
+#page-info {
+  font-weight: bold;
+}
+
+.line {
+  position: absolute;
+  border: 1px solid coral;
+}
+
+.line-cover {
+  border: 1px solid blue;
+  background-color: rgba(255, 255, 255, 0.5);
+}

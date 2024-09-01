@@ -1,0 +1,19 @@
+#overlay {
+  position: absolute;
+  top: 0;
+}
+
+.line-cover {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.with-borders {
+  border: 1px solid #000;
+}
+
+.error-highlight {
+  position: absolute;
+  background:  rgba(255, 0, 0, 0.2);
+}
+

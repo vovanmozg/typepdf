@@ -1,0 +1,44 @@
+#app {
+  text-align: center;
+}
+
+#menu {
+  width: 300px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+}
+
+#page-navigation {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#page-navigation.hidden {
+  /*visibility: hidden;*/
+  display: none;
+}
+
+#page-navigation button {
+  border: none;
+  padding: 5px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#page-navigation button:hover {
+  background-color: #0056b3;
+  color: white;
+}
+
+#page-info {
+  margin: 0 10px;
+}
+
+.shortcuts {
+  margin-top: 30px;
+  font-size: 0.8em;
+  color: #666;
+}

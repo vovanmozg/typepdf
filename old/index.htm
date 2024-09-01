@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Typing Practice</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<h1>PDF Typing Practice</h1>
+<input type="file" id="pdf-input" accept="application/pdf">
+<div id="navigation">
+  <button id="prev-page">Предыдущая</button>
+  <span id="page-info">Страница 1 из 1</span>
+  <button id="next-page">Следующая</button>
+</div>
+<div id="pdf-container">
+  <canvas id="pdf-canvas"></canvas>
+  <div id="overlay"></div>
+  <div id="cursor"></div>
+</div>
+<script src="./pdf.min.js"></script>
+<script src="./pdf.worker.min.js"></script>
+<script src="./tesseract.min.js"></script>
+
+<script type="module" src="script.js"></script>
+</body>
+</html>
