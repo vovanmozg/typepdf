@@ -1,19 +1,49 @@
-// src/App.jsx
-import React, { useState, useEffect } from 'react';
+import { useStore } from '@nanostores/react';
+import { stateStore } from './store';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { PdfUpload } from './PdfUpload';
-import { Page } from './Page';
 import { useRecognize } from './hooks/useRecognize';
 import './App.css';
 import { generatePdfId } from './lib/generatePdfId';
 import { useStorage } from './hooks/useStorage';
+import { Modal } from './Modal';
+import { useScale } from './Scaler';
+import { RenderedPdf } from './RenderedPdf';
+import { Overlay } from './Overlay';
+
+const SCALE = 5;
+
+function Shortcuts() {
+  return (
+    <div className="shortcuts">
+      <div className="shortcut">
+        <div className="shortcut-key">Shift</div>+
+        <div className="shortcut-key">Space</div> - skip symbol
+      </div>
+      <div className="shortcut" title="Shift + Arrow down">
+        <div className="shortcut-key">Shift</div>+
+        <div className="shortcut-key">↓</div> - skip line
+      </div>
+      <div className="shortcut">
+        <div className="shortcut-key">F11</div>
+        for comfortable typing
+      </div>
+    </div>
+  );
+}
 
 const App = () => {
   const [pdfDoc, setPdfDoc] = useState(null);
   const [pageNumber, setPageNumber] = useState(null);
-  const [page, setPage] = useState(null);
+  const [pdfPage, setPdfPage] = useState(null);
   const [base64Image, setBase64Image] = useState(null);
   const [image, setImage] = useState(null);
   const [shouldDisplayOcrBorders, setShouldDisplayOcrBorders] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { setScale } = useScale();
+  const containerRef = useRef(null);
+  const state = useStore(stateStore);
 
   const storage = useStorage(pdfDoc ? generatePdfId(pdfDoc) : null);
 
@@ -63,17 +93,19 @@ const App = () => {
       }
 
       const page = await pdfDoc.getPage(pageNumber);
-      setPage(page);
+      setPdfPage(page);
     })();
   }, [pdfDoc, pageNumber]);
 
   useEffect(() => {
-    if (!page) {
+    if (!pdfPage) {
       return;
     }
 
+    setBase64Image(null);
+
     (async () => {
-      const viewport = page.getViewport({ scale: 2.38 });
+      const viewport = pdfPage.getViewport({ scale: 5 });
       const canvas = document.createElement('canvas');
       canvas.height = viewport.height;
       canvas.width = viewport.width;
@@ -83,11 +115,11 @@ const App = () => {
         viewport: viewport,
       };
 
-      await page.render(renderContext).promise;
+      await pdfPage.render(renderContext).promise;
 
       setBase64Image('' + canvas.toDataURL());
     })();
-  }, [page]);
+  }, [pdfPage]);
 
   useEffect(() => {
     if (!base64Image) {
@@ -99,7 +131,7 @@ const App = () => {
     image.src = base64Image;
   }, [base64Image]);
 
-  const ocr = useRecognize(base64Image);
+  const { data: ocr, progress } = useRecognize(image);
 
   const pageNumbers = (
     pdfDoc?.numPages ? [...Array(pdfDoc.numPages).keys()] : []
@@ -107,12 +139,50 @@ const App = () => {
 
   const hidden = pdfDoc ? '' : 'hidden';
 
+  useEffect(() => {
+    const handleKeyDown = event => {
+      if (event.ctrlKey) {
+        if (event.key === 'ArrowRight') {
+          goToNextPage();
+        } else if (event.key === 'ArrowLeft') {
+          goToPrevPage();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [pdfDoc]);
+
+  // setScale on resize
+  useEffect(() => {
+    const handleResize = () => {
+      setScale({
+        imageWidth: image?.width,
+        containerWidth: containerRef.current?.clientWidth,
+      });
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [image, containerRef.current, setScale]);
+
   return (
     <div id="app">
+      <div id="progress-container">
+        <div
+          className={`progress-bar ${[progress] < 1 ? 'processing' : ''}`}
+          style={{ width: `${progress * 100}%` }}></div>
+      </div>
       <div id="menu">
         <PdfUpload onPdfLoaded={handlePdfUploaded} />
         <div id="page-navigation" className={hidden}>
-          <button onClick={goToPrevPage}>
+          <button onClick={goToPrevPage} title="Ctrl + ←">
             <i className="fas fa-arrow-left"></i>
           </button>
           <span id="page-info">
@@ -125,7 +195,7 @@ const App = () => {
             </select>{' '}
             / {pdfDoc ? pdfDoc.numPages : 1}
           </span>
-          <button onClick={goToNextPage}>
+          <button onClick={goToNextPage} title="Ctrl + →">
             <i className="fas fa-arrow-right"></i>
           </button>
         </div>
@@ -133,18 +203,27 @@ const App = () => {
           <button onClick={toggleOcrBorders}>
             <i className="fas fa-border-all"></i>
           </button>
+          <button onClick={() => setIsModalOpen(true)}>
+            <i className="fas fa-eye"></i>
+          </button>
+        </div>
+        <div className="typing-speed">
+          Speed (lpm): {state?.speed}, Errors/min: {state?.errorCount}
         </div>
       </div>
 
-      <Page
-        page={page}
-        base64Image={base64Image}
-        image={image}
-        ocr={ocr}
-        shouldDisplayOcrBorders={shouldDisplayOcrBorders}
-      />
+      <div id="pdf-container" ref={containerRef}>
+        <RenderedPdf image={image} />
+        <Overlay ocr={ocr} shouldDisplayOcrBorders={shouldDisplayOcrBorders} />
+      </div>
 
-      <div className="shortcuts">Shift + Space - skip symbol</div>
+      {image ? <Shortcuts /> : null}
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        recognizedText={ocr?.text || ''}
+      />
     </div>
   );
 };

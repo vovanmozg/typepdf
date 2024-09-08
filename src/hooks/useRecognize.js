@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { recognize } from 'tesseract.js';
+import { createWorker } from 'tesseract.js';
 
 function richifyOcr(ocr) {
   if (!ocr) {
@@ -25,33 +25,53 @@ function richifyOcr(ocr) {
   });
 }
 
-export function useRecognize(base64Image) {
-  const [data, setData] = useState(null);
+export function useRecognize(image) {
+  const [worker, setWorker] = useState(null);
+  const [progress, setProgress] = useState(0);
+  const [jobInProgress, setJobInProgress] = useState(false);
+  const [dataset, setDataset] = useState({});
 
   useEffect(() => {
-    if (!base64Image) {
+    (async () => {
+      const newWorker = await createWorker('eng', 1, {
+        logger: ({ status, progress }) =>
+          status === 'recognizing text' ? setProgress(progress) : null,
+      });
+      setWorker(newWorker);
+    })();
+
+    return () => {
+      if (worker) {
+        worker.terminate();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!image || !worker) {
       return;
     }
 
-    setData(null);
+    if (dataset[image.src]) {
+      return;
+    }
+
+    if (jobInProgress === false) {
+      setJobInProgress(true);
+    }
 
     (async () => {
       const canvas = document.createElement('canvas');
-      const image = new Image();
-      image.src = base64Image;
-      await new Promise((resolve, reject) => {
-        image.onload = resolve;
-        image.onerror = reject;
-      });
-
       canvas.width = image.width;
       canvas.height = image.height;
-      const result = await recognize(image, 'eng');
+
+      const result = await worker.recognize(image);
 
       richifyOcr(result.data);
-      setData(result.data);
+      setDataset({ ...dataset, [image.src]: result.data });
+      setJobInProgress(false);
     })();
-  }, [base64Image]);
+  }, [image, worker]);
 
-  return data;
+  return { data: dataset[image?.src], progress };
 }

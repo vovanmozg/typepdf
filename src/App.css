@@ -3,11 +3,10 @@
 }
 
 #menu {
-  width: 300px;
-  margin: 0 auto;
+  margin: 0 20px;
   display: flex;
-  justify-content: space-around;
   margin-top: 20px;
+  gap: 10px;
 }
 
 #page-navigation {
@@ -37,8 +36,64 @@
   margin: 0 10px;
 }
 
+#progress-container {
+  width: 100%;
+}
+
+#progress-container .progress-bar {
+  height: 3px;
+}
+
+#progress-container .progress-bar.processing {
+  background-color: #0056b3;
+}
+
 .shortcuts {
   margin-top: 30px;
   font-size: 0.8em;
   color: #666;
+}
+
+.shortcuts .shortcut {
+  display: inline-block;
+  margin: 5px 10px;
+}
+
+.shortcuts .shortcut-key {
+  display: inline-block;
+  padding: 2px 10px;
+  margin: 5px 2px;
+  border-radius: 3px;
+  background-color: #eeeeee;
+  font-family: monospace;
+}
+
+#pdf-container {
+  position: relative;
+  margin: 50px auto 0 auto;
+  height: 70vh;
+  overflow: scroll;
+  mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+}
+
+#pdf-container::before,
+#pdf-container::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 20px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+#pdf-container::before {
+  top: 0;
+  background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0));
+}
+
+#pdf-container::after {
+  bottom: 0;
+  background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0));
 }

@@ -1,29 +1,63 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Cursor } from './Cursor';
 import useDocumentKeyPress from './hooks/useDocumentKeyPress';
 import { useOverlayLines } from './hooks/useOverlayLines';
 import { useFrame } from './hooks/useFrame';
+import { useScale } from './Scaler';
 import './Overlay.css';
+
+function useInitialScroll(ocr) {
+  // при переключении на новую страницу по деволту просрроллить в начало
+  useEffect(() => {
+    document.getElementById('pdf-container').scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  }, [ocr]);
+}
+
+function useScrollToCurrentLine(frame) {
+  const { scale: s } = useScale();
+
+  useEffect(() => {
+    if (!frame?.currentLine) {
+      return;
+    }
+
+    document.getElementById('pdf-container').scrollTo({
+      top: s(frame.currentLine.bbox.y0 - 150),
+      behavior: 'smooth',
+    });
+  }, [frame?.currentSymbol]);
+}
 
 export function Overlay({ ocr, shouldDisplayOcrBorders }) {
   const lines = useOverlayLines(ocr);
   const frame = useFrame(ocr);
-  const containerRef = useRef(null);
+  const { scale: s } = useScale();
 
   const typeCharacterHandle = event => {
     if (frame.isCorrect(event)) {
-      frame.next();
+      frame.next(event);
     } else {
       frame.typo();
     }
   };
 
   useDocumentKeyPress(event => {
+    if (!frame) {
+      return;
+    }
+
     if (event.altKey || event.ctrlKey || event.metaKey) {
       return;
     }
 
-    if (event.key.length > 1) {
+    if (event.shiftKey && event.key === 'ArrowDown') {
+      frame.nextLine();
+    }
+
+    if (event.key.length > 1 && event.key !== 'Enter') {
       return;
     }
 
@@ -32,40 +66,32 @@ export function Overlay({ ocr, shouldDisplayOcrBorders }) {
     event.preventDefault();
   });
 
-  useEffect(() => {
-    if (!frame?.currentLine) {
-      return;
-    }
-
-    document.getElementById('pdf-container').scrollTo({
-      top: frame.currentLine.bbox.y0 - 150,
-      behavior: 'smooth',
-    });
-  }, [frame?.currentSymbol]);
+  useInitialScroll(ocr);
+  useScrollToCurrentLine(frame, lines);
 
   function lineSizeAndPosition(line, lineIndex) {
     const margin = 5;
     const sizeAndPosition = {
-      top: `${line.bbox.y0 - margin}px`,
-      height: `${line.bbox.y1 - line.bbox.y0 + margin * 2}px`,
+      top: `${s(line.bbox.y0 - margin)}px`,
+      height: `${s(line.bbox.y1 - line.bbox.y0 + margin)}px`,
     };
 
     if (lineIndex === frame.currentSymbol.word.line.absoluteIndex) {
-      sizeAndPosition.left = `${frame.bbox().x0}px`;
-      sizeAndPosition.width = `${line.bbox.x1 - frame.bbox().x0}px`;
+      sizeAndPosition.left = `${s(line.bbox.x0)}px`;
+      sizeAndPosition.width = `${s(frame.bbox().x0 - line.bbox.x0)}px`;
     } else {
-      sizeAndPosition.left = `${line.bbox.x0}px`;
-      sizeAndPosition.width = `${line.bbox.x1 - line.bbox.x0}px`;
+      sizeAndPosition.left = `${s(line.bbox.x0)}px`;
+      sizeAndPosition.width = `${s(line.bbox.x1 - line.bbox.x0)}px`;
     }
 
     return sizeAndPosition;
   }
 
-  const isLineTheSameOrBelowFrame = (line, lineIndex) => {
-    return lineIndex >= frame.currentSymbol.word.line.absoluteIndex;
+  const isLineTheSameOrAboveFrame = (line, lineIndex) => {
+    return lineIndex <= frame.currentSymbol.word.line.absoluteIndex;
   };
 
-  if (!ocr || !frame) {
+  if (!frame?.currentSymbol) {
     return null;
   }
 
@@ -74,12 +100,12 @@ export function Overlay({ ocr, shouldDisplayOcrBorders }) {
     : 'line-cover';
 
   return (
-    <div id="overlay" ref={containerRef}>
+    <div id="overlay">
       <div>
         {lines.map((line, lineIndex) =>
-          isLineTheSameOrBelowFrame(line, lineIndex) ? (
+          isLineTheSameOrAboveFrame(line, lineIndex) ? (
             <div
-              key={line.text}
+              key={`${lineIndex}${line.text}`}
               className={lineClassName}
               data-line-index={lineIndex}
               style={{
@@ -95,10 +121,10 @@ export function Overlay({ ocr, shouldDisplayOcrBorders }) {
           key={index}
           className="error-highlight"
           style={{
-            top: `${symbol.bbox.y0 - 2}px`,
-            left: `${symbol.bbox.x0 - 2}px`,
-            width: `${symbol.bbox.x1 - symbol.bbox.x0 + 4}px`,
-            height: `${symbol.bbox.y1 - symbol.bbox.y0 + 4}px`,
+            top: `${s(symbol.bbox.y0 - 2)}px`,
+            left: `${s(symbol.bbox.x0 - 2)}px`,
+            width: `${s(symbol.bbox.x1 - symbol.bbox.x0 + 4)}px`,
+            height: `${s(symbol.bbox.y1 - symbol.bbox.y0 + 4)}px`,
           }}
         />
       ))}
